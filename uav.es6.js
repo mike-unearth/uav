@@ -1,12 +1,6 @@
-'use strict';
+(() => {
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-
-(function () {
-
-    var ESCAPE_MAP = {
+    const ESCAPE_MAP = {
         '<': '&lt;',
         '>': '&gt;',
         '"': '&quot;',
@@ -18,9 +12,10 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function escape(value) {
 
-        return typeof value === 'string' ? value.replace(/[<>'"]/g, function (c) {
-            return ESCAPE_MAP[c];
-        }) : '';
+        return typeof value === 'string' 
+            ? value.replace(/[<>'"]/g, c => ESCAPE_MAP[c])
+            : '';
+
     }
 
     /**
@@ -28,7 +23,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function parse(markup) {
 
-        var el = document.createElement('div');
+        let el = document.createElement('div');
 
         el.innerHTML = markup;
 
@@ -39,6 +34,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
         el = el.firstElementChild;
 
         return el;
+
     }
 
     /**
@@ -46,7 +42,8 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function isVmEligible(value) {
 
-        return value && !Array.isArray(value) && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object';
+        return value && !Array.isArray(value) && typeof value === 'object';
+
     }
 
     /**
@@ -54,20 +51,19 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function bindPropertiesToSetter(obj, setter) {
 
-        Object.keys(obj).forEach(function (key) {
+        Object.keys(obj).forEach(key => {
 
-            var value = obj[key];
+            let value = obj[key];
 
             Object.defineProperty(obj, key, {
 
-                get: function get() {
-                    return value;
-                },
-                set: function set(newVal) {
+                get: () => value,
+                set: newVal => {
 
                     value = newVal;
 
                     setter('_childPropertyModified');
+
                 }
 
             });
@@ -75,8 +71,11 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
             if (isVmEligible(obj[key])) {
 
                 bindPropertiesToSetter(obj[key], setter);
+
             }
+
         });
+
     }
 
     /**
@@ -85,11 +84,11 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function model(data) {
 
-        var vm = {
+        const vm = {
             _bindings: {}
         };
 
-        Object.keys(data).forEach(function (key) {
+        Object.keys(data).forEach(key => {
 
             function get() {
 
@@ -98,9 +97,11 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
                     vm._bindings[key] = vm._bindings[key] || [];
 
                     vm._bindings[key].push(vm._currentlyCreatingBinding);
+
                 }
 
                 return data[key];
+
             }
 
             function set(value) {
@@ -112,32 +113,38 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
                         if (isVmEligible(value)) {
 
                             bindPropertiesToSetter(value, set);
+
                         }
 
                         data[key] = value;
+
                     }
 
                     if (vm._bindings[key]) {
 
-                        vm._bindings[key].forEach(function (binding) {
-                            return binding();
-                        });
+                        vm._bindings[key].forEach(binding => binding());
+
                     }
+
                 }
+
             }
 
             Object.defineProperty(vm, key, {
-                get: get,
-                set: set
+                get,
+                set
             });
 
             if (isVmEligible(data[key])) {
 
                 bindPropertiesToSetter(data[key], set);
+
             }
+
         });
 
         return vm;
+
     }
 
     /**
@@ -151,11 +158,14 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
         try {
 
-            return new Function('with(arguments[0]){return ' + expression + ';}')(scope);
+            return new Function(`with(arguments[0]){return ${expression};}`)(scope);
+
         } catch (err) {
 
             return '_invalidExpression';
+
         }
+
     }
 
     /**
@@ -164,56 +174,64 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function bind(template, vm, replace) {
 
-        var matches = template.match(/{(.*?)}/g);
+        const matches = template.match(/{(.*?)}/g);
 
         if (matches) {
-            (function () {
-                var binding = function binding() {
 
-                    var content = template;
+            let firstTime = true;
 
-                    var value = void 0;
+            function binding() {
 
-                    matches.forEach(function (match) {
+                let content = template;
 
-                        var prop = match.substring(1, match.length - 1);
+                let value;
 
-                        if (firstTime) {
+                matches.forEach(match => {
 
-                            vm._currentlyCreatingBinding = binding;
-                        }
+                    const prop = match.substring(1, match.length - 1);
 
-                        value = evaluate(prop, vm);
+                    if (firstTime) {
 
-                        delete vm._currentlyCreatingBinding;
+                        vm._currentlyCreatingBinding = binding;
 
-                        if (typeof value === 'boolean') {
+                    }
 
-                            content = content.replace(match, value ? prop : '');
-                        } else if (typeof value === 'function') {
+                    value = evaluate(prop, vm);
 
-                            content = value;
-                        } else if (value && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object' && value._element) {
+                    delete vm._currentlyCreatingBinding;
 
-                            content = value._element;
-                        } else {
+                    if (typeof value === 'boolean') {
 
-                            value = value === '_invalidExpression' ? '' : escape(value);
+                        content = content.replace(match, value ? prop : '');
+                    
+                    } else if (typeof value === 'function') {
 
-                            content = content.replace(match, value);
-                        }
-                    });
+                        content = value;
 
-                    replace(content);
-                };
+                    } else if (value && typeof value === 'object' && value._element) {
 
-                var firstTime = true;
+                        content = value._element;
 
-                binding();
+                    } else {
 
-                firstTime = false;
-            })();
+                        value = value === '_invalidExpression' ? '' : escape(value);
+
+                        content = content.replace(match, value);
+
+                    }
+
+                });
+
+                replace(content);
+
+            }
+
+            binding();
+
+            firstTime = false;
+
         }
+
     }
 
     /**
@@ -221,74 +239,77 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function loop(tag, prop, temp, template, vm, replace) {
 
-        var firstTime = true;
+        let firstTime = true;
 
         function binding() {
 
             if (firstTime) {
 
                 vm._currentlyCreatingBinding = binding;
+
             }
 
-            var data = evaluate(prop, vm);
+            const data = evaluate(prop, vm);
 
             delete vm._currentlyCreatingBinding;
 
-            var el = document.createElement(tag);
+            const el = document.createElement(tag);
 
             if (data !== '_invalidExpression') {
-                (function () {
 
-                    var children = parse('<div>' + template + '</div>').childNodes;
+                const children = parse(`<div>${template}</div>`).childNodes;
 
-                    if (Array.isArray(data)) {
+                if (Array.isArray(data)) {
 
-                        var tempOriginalValue = vm[temp];
+                    const tempOriginalValue = vm[temp];
 
-                        data.forEach(function (item) {
+                    data.forEach(item => {
 
-                            vm[temp] = item;
+                        vm[temp] = item;
 
-                            children.forEach(function (child) {
-                                return el.appendChild(child.cloneNode(true));
-                            });
+                        children.forEach(child => el.appendChild(child.cloneNode(true)));
 
-                            render(el, vm);
-                        });
+                        render(el, vm);
 
-                        vm[temp] = tempOriginalValue;
-                    } else {
+                    });
 
-                        if (typeof temp === 'string') {
+                    vm[temp] = tempOriginalValue;
 
-                            temp = temp.split('.');
-                        }
+                } else {
 
-                        Object.keys(data).forEach(function (key) {
+                    if (typeof temp === 'string') {
 
-                            var keyOriginalValue = vm[temp[0]],
-                                valOriginalValue = vm[temp[1]];
+                        temp = temp.split('.');
 
-                            vm[temp[0]] = key;
-                            vm[temp[1]] = data[key];
-
-                            children.forEach(function (child) {
-                                return el.appendChild(child.cloneNode(true));
-                            });
-
-                            vm[temp[0]] = keyOriginalValue;
-                            vm[temp[1]] = valOriginalValue;
-                        });
                     }
-                })();
+
+                    Object.keys(data).forEach(key => {
+
+                        const keyOriginalValue = vm[temp[0]],
+                            valOriginalValue = vm[temp[1]];
+
+                        vm[temp[0]] = key;
+                        vm[temp[1]] = data[key];
+
+                        children.forEach(child => el.appendChild(child.cloneNode(true)));
+
+                        vm[temp[0]] = keyOriginalValue;
+                        vm[temp[1]] = valOriginalValue;
+
+                    });
+
+                }
+
             }
 
             replace(el);
+
         }
 
         binding();
 
         firstTime = false;
+
     }
 
     /**
@@ -296,10 +317,12 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function forEachAttribute(el, callback) {
 
-        for (var i = 0; i < el.attributes.length; i++) {
+        for (let i = 0; i < el.attributes.length; i++) {
 
             callback(el.attributes[i]);
+
         }
+
     }
 
     /**
@@ -307,68 +330,89 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function render(el, vm) {
 
-        forEachAttribute(el, function (attribute) {
+        forEachAttribute(el, attribute => {
 
             if (attribute.specified && attribute.name !== 'as') {
 
                 if (attribute.name === 'loop' && el.attributes.as) {
 
-                    loop(el.tagName, attribute.value, el.attributes.as.value, el.innerHTML, vm, function (child) {
-                        el.parentNode.replaceChild(child, el);
-                        forEachAttribute(el, function (attr) {
-                            child.setAttribute(attr.name, attr.value);
-                        });
-                        el = child;
-                    });
+                    loop(el.tagName,
+                        attribute.value,
+                        el.attributes.as.value, 
+                        el.innerHTML, 
+                        vm,
+                        child => {
+                            el.parentNode.replaceChild(child, el);
+                            forEachAttribute(el, attr => {
+                                child.setAttribute(attr.name, attr.value);
+                            });
+                            el = child;
+                        }
+                    );
 
                     el.removeAttribute('loop');
                     el.removeAttribute('as');
+
                 } else {
 
-                    bind(attribute.value, vm, function (value) {
+                    bind(attribute.value, vm, value => {
 
                         if (typeof value === 'function') {
 
                             el.removeAttribute(attribute.name);
 
                             el[attribute.name] = value;
+
                         } else {
 
                             attribute.value = value;
+
                         }
+
                     });
+
                 }
+
             }
+
         });
 
-        el.childNodes.forEach(function (child) {
+        el.childNodes.forEach(child => {
 
             if (child.nodeType === 3) {
 
-                bind(child.textContent, vm, function (value) {
+                bind(child.textContent, vm, value => {
 
                     child.textContent = value;
+
                 });
+
             } else {
 
-                var tag = child.tagName.toLowerCase();
+                const tag = child.tagName.toLowerCase();
 
                 if (vm[tag] !== undefined && vm[tag]._element) {
 
-                    bind('{' + tag + '}', vm, function (newChild) {
+                    bind(`{${tag}}`, vm, newChild => {
 
                         el.replaceChild(newChild, child);
 
                         child = newChild;
+
                     });
+
                 } else {
 
                     render(child, vm);
+
                 }
+
             }
+
         });
 
         return el;
+
     }
 
     /**
@@ -381,14 +425,16 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
         if (parentSelector) {
 
-            var app = document.querySelector(parentSelector);
+            const app = document.querySelector(parentSelector);
 
             app.innerHTML = '';
 
             app.appendChild(vm._element);
+
         }
 
         return vm;
+
     }
 
     /**
@@ -399,11 +445,14 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
         if (callback) {
 
-            [].concat(_toConsumableArray(document.querySelectorAll(selector))).forEach(callback);
+            [...document.querySelectorAll(selector)].forEach(callback);
+
         } else {
 
             return document.querySelector(selector) || document.createElement('div');
+
         }
+
     }
 
     /**
@@ -416,6 +465,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
         return {
             _element: document.createElement(tag || 'div')
         };
+
     }
 
     uav.model = model;
@@ -427,8 +477,11 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
     if (typeof module !== 'undefined' && module.exports) {
 
         module.exports = uav;
+
     } else {
 
         window.uav = uav;
+
     }
+
 })();
