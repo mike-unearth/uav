@@ -96,6 +96,26 @@ uav.component(parentModel, `
 `);
 ```
 
+## Looping over Objects
+
+Template loops over arrays are demonstrated above. Looping over an object is also supported:
+
+```javascript
+const model = uav.model({
+    obj: {
+        a: 1,
+        b: 2,
+        c: 3
+    }
+});
+
+uav.component(model, `
+    <ul loop="obj" as="key.value">
+        <li>{key} = {value}</li>
+    </ul>
+`}, '#app');
+```
+
 ## DOM Access
 
 Using bound templates generally supplants the need to perform any manual DOM manipulation. However, there are occasions where it is unavoidable. Elements can be accessed by passing a selector (and optionally, a callback) to the `uav` function.

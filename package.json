@@ -2,7 +2,7 @@
   "name": "uav",
   "version": "0.0.1",
   "description": "A simple utility for one-way data binding",
-  "main": "uav.js",
+  "main": "uav.min.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

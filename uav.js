@@ -158,10 +158,7 @@
 
         try {
 
-            return new Function(`
-                with (arguments[0]) {
-                    return ${expression};
-                }`)(scope);
+            return new Function(`with(arguments[0]){return ${expression};}`)(scope);
 
         } catch (err) {
 
