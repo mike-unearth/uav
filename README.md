@@ -41,7 +41,7 @@ This renders the following into the `#app` element:
 </div>
 ```
 
-While template expressions have been removed, bound events work as expected.
+Even though template expressions have been removed, bound events work as expected.
 
 If we run `component.text = 'updated'`, the content of the `<h1>` will update.
 
@@ -75,12 +75,11 @@ uav.component(parentModel, `
 
 ## Passing Data to Children
 
-Child component:
-
 ```javascript
+const childModel = uav.model({ data });
+
 function child(data) {
-    return uav.component(
-        uav.model({ data }),
+    return uav.component(childModel,
         `<h1>{data}</h1>`);
 }
 
@@ -90,7 +89,7 @@ const parentModel = uav.model({
 
 uav.component(parentModel, `
     <div>
-        This component passes data it its child.
+        This component passes data to its child.
         <child></child>
     </div>
 `);
