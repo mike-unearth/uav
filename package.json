@@ -1,0 +1,24 @@
+{
+  "name": "uav",
+  "version": "0.0.1",
+  "description": "A simple utility for one-way data binding",
+  "main": "uav.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mike-unearth/uav.git"
+  },
+  "keywords": [
+    "data",
+    "binding",
+    "templates"
+  ],
+  "author": "mike-unearth",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mike-unearth/uav/issues"
+  },
+  "homepage": "https://github.com/mike-unearth/uav#readme"
+}
