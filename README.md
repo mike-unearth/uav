@@ -76,11 +76,11 @@ uav.component(parentModel, `
 ## Passing Data to Children
 
 ```javascript
-const childModel = uav.model({ data });
-
 function child(data) {
-    return uav.component(childModel,
-        `<h1>{data}</h1>`);
+
+    const childModel = uav.model({ data });
+
+    return uav.component(childModel, `<h1>{data}</h1>`);
 }
 
 const parentModel = uav.model({
