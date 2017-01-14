@@ -357,9 +357,13 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
                     bind('{' + tag + '}', vm, function (newChild) {
 
-                        el.replaceChild(newChild, child);
+                        if (child.parentNode === el) {
 
-                        child = newChild;
+                            el.replaceChild(newChild, child);
+
+                            child = newChild;
+
+                        }
                     });
                 } else {
 

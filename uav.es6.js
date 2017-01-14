@@ -395,9 +395,13 @@
 
                     bind(`{${tag}}`, vm, newChild => {
 
-                        el.replaceChild(newChild, child);
+                        if (child.parentNode === el) {
 
-                        child = newChild;
+                            el.replaceChild(newChild, child);
+
+                            child = newChild;
+
+                        }
 
                     });
 
