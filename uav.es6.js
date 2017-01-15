@@ -12,9 +12,7 @@
      */
     function escape(value) {
 
-        return typeof value === 'string' 
-            ? value.replace(/[<>'"]/g, c => ESCAPE_MAP[c])
-            : '';
+        return value.replace(/[<>'"]/g, c => ESCAPE_MAP[c]);
 
     }
 
@@ -208,15 +206,23 @@
 
                         content = value;
 
-                    } else if (value && typeof value === 'object' && value._element) {
+                    } else if (value === null || value === undefined || value === '_invalidExpression') {
+
+                        content = content.replace(match, '');
+
+                    } else if (typeof value === 'object' && value._element) {
 
                         content = value._element;
 
                     } else {
 
-                        value = value === '_invalidExpression' ? '' : escape(value);
+                        if (Array.isArray(value)) {
 
-                        content = content.replace(match, value);
+                            value = value.join('');
+                            
+                        }
+
+                        content = content.replace(match, escape(value.toString()));
 
                     }
 
@@ -231,6 +237,15 @@
             firstTime = false;
 
         }
+
+    }
+
+    /*
+     * Copy child nodes from one element to another
+     */
+    function copyChildNodes(from, to) {
+
+        from.childNodes.forEach(node => to.appendChild(node.cloneNode(true)));
 
     }
 
@@ -257,7 +272,7 @@
 
             if (data !== '_invalidExpression') {
 
-                const children = parse(`<div>${template}</div>`).childNodes;
+                const child = parse(`<div>${template}</div>`);
 
                 if (Array.isArray(data)) {
 
@@ -267,7 +282,7 @@
 
                         vm[temp] = item;
 
-                        children.forEach(child => el.appendChild(child.cloneNode(true)));
+                        copyChildNodes(child, el);
 
                         render(el, vm);
 
@@ -291,7 +306,7 @@
                         vm[temp[0]] = key;
                         vm[temp[1]] = data[key];
 
-                        children.forEach(child => el.appendChild(child.cloneNode(true)));
+                        copyChildNodes(child, el);
 
                         vm[temp[0]] = keyOriginalValue;
                         vm[temp[1]] = valOriginalValue;
@@ -325,6 +340,29 @@
 
     }
 
+    /*
+     * Bind the given attribute to the given vm
+     */
+    function bindAttribute(el, attribute, vm) {
+
+        bind(attribute.value, vm, value => {
+
+            if (typeof value === 'function') {
+
+                el.removeAttribute(attribute.name);
+
+                el[attribute.name] = value;
+
+            } else {
+
+                el.setAttribute(attribute.name, value);
+
+            }
+
+        });
+
+    }
+
     /**
      * Checks all elements and attributes for template expressions
      */
@@ -342,11 +380,11 @@
                         el.innerHTML, 
                         vm,
                         child => {
-                            el.parentNode.replaceChild(child, el);
+                            el.innerHTML = '';
+                            [...child.childNodes].forEach(node => el.appendChild(node));
                             forEachAttribute(el, attr => {
-                                child.setAttribute(attr.name, attr.value);
+                                bindAttribute(el, attr, vm);
                             });
-                            el = child;
                         }
                     );
 
@@ -355,21 +393,7 @@
 
                 } else {
 
-                    bind(attribute.value, vm, value => {
-
-                        if (typeof value === 'function') {
-
-                            el.removeAttribute(attribute.name);
-
-                            el[attribute.name] = value;
-
-                        } else {
-
-                            attribute.value = value;
-
-                        }
-
-                    });
+                    bindAttribute(el, attribute, vm);
 
                 }
 

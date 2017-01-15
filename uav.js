@@ -18,9 +18,9 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function escape(value) {
 
-        return typeof value === 'string' ? value.replace(/[<>'"]/g, function (c) {
+        return value.replace(/[<>'"]/g, function (c) {
             return ESCAPE_MAP[c];
-        }) : '';
+        });
     }
 
     /**
@@ -193,14 +193,20 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
                         } else if (typeof value === 'function') {
 
                             content = value;
-                        } else if (value && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object' && value._element) {
+                        } else if (value === null || value === undefined || value === '_invalidExpression') {
+
+                            content = content.replace(match, '');
+                        } else if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object' && value._element) {
 
                             content = value._element;
                         } else {
 
-                            value = value === '_invalidExpression' ? '' : escape(value);
+                            if (Array.isArray(value)) {
 
-                            content = content.replace(match, value);
+                                value = value.join('');
+                            }
+
+                            content = content.replace(match, escape(value.toString()));
                         }
                     });
 
@@ -214,6 +220,16 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
                 firstTime = false;
             })();
         }
+    }
+
+    /*
+     * Copy child nodes from one element to another
+     */
+    function copyChildNodes(from, to) {
+
+        from.childNodes.forEach(function (node) {
+            return to.appendChild(node.cloneNode(true));
+        });
     }
 
     /**
@@ -239,7 +255,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
             if (data !== '_invalidExpression') {
                 (function () {
 
-                    var children = parse('<div>' + template + '</div>').childNodes;
+                    var child = parse('<div>' + template + '</div>');
 
                     if (Array.isArray(data)) {
 
@@ -249,9 +265,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
                             vm[temp] = item;
 
-                            children.forEach(function (child) {
-                                return el.appendChild(child.cloneNode(true));
-                            });
+                            copyChildNodes(child, el);
 
                             render(el, vm);
                         });
@@ -272,9 +286,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
                             vm[temp[0]] = key;
                             vm[temp[1]] = data[key];
 
-                            children.forEach(function (child) {
-                                return el.appendChild(child.cloneNode(true));
-                            });
+                            copyChildNodes(child, el);
 
                             vm[temp[0]] = keyOriginalValue;
                             vm[temp[1]] = valOriginalValue;
@@ -302,6 +314,25 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
         }
     }
 
+    /*
+     * Bind the given attribute to the given vm
+     */
+    function bindAttribute(el, attribute, vm) {
+
+        bind(attribute.value, vm, function (value) {
+
+            if (typeof value === 'function') {
+
+                el.removeAttribute(attribute.name);
+
+                el[attribute.name] = value;
+            } else {
+
+                el.setAttribute(attribute.name, value);
+            }
+        });
+    }
+
     /**
      * Checks all elements and attributes for template expressions
      */
@@ -314,29 +345,20 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
                 if (attribute.name === 'loop' && el.attributes.as) {
 
                     loop(el.tagName, attribute.value, el.attributes.as.value, el.innerHTML, vm, function (child) {
-                        el.parentNode.replaceChild(child, el);
-                        forEachAttribute(el, function (attr) {
-                            child.setAttribute(attr.name, attr.value);
+                        el.innerHTML = '';
+                        [].concat(_toConsumableArray(child.childNodes)).forEach(function (node) {
+                            return el.appendChild(node);
                         });
-                        el = child;
+                        forEachAttribute(el, function (attr) {
+                            bindAttribute(el, attr, vm);
+                        });
                     });
 
                     el.removeAttribute('loop');
                     el.removeAttribute('as');
                 } else {
 
-                    bind(attribute.value, vm, function (value) {
-
-                        if (typeof value === 'function') {
-
-                            el.removeAttribute(attribute.name);
-
-                            el[attribute.name] = value;
-                        } else {
-
-                            attribute.value = value;
-                        }
-                    });
+                    bindAttribute(el, attribute, vm);
                 }
             }
         });
@@ -362,7 +384,6 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
                             el.replaceChild(newChild, child);
 
                             child = newChild;
-
                         }
                     });
                 } else {
