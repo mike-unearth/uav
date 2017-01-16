@@ -324,17 +324,24 @@
      */
     function forEachAttribute(el, callback) {
 
-        for (let i = 0; i < el.attributes.length; i++) {
+        const attributes = [...el.attributes].filter(attribute => {
 
-            const attribute = el.attributes[i];
+            return attribute.specified && attribute.name !== 'as';
 
-            if (attribute.specified && attribute.name !== 'as') {
+        }).map(attribute => {
 
-                callback(attribute);
+            return {
+                name: attribute.name,
+                value: attribute.value
+            };
 
-            }
+        });
 
-        }
+        attributes.forEach(attribute => {
+
+            callback(attribute);
+            
+        });
 
         if (el.value) {
 
@@ -357,6 +364,8 @@
              * Assume function values are event handlers
              */
             if (typeof value === 'function') {
+
+                el.removeAttribute(attribute.name);
 
                 el[attribute.name] = value;
 
@@ -392,6 +401,9 @@
                         });
                     }
                 );
+
+                el.removeAttribute('loop');
+                el.removeAttribute('as');
 
             } else {
 

@@ -8,7 +8,7 @@ UAV is a JavaScript utility for templates with one-way data binding. It is 1.6KB
 
 ## Example
 
-[See a JSFiddle](http://jsfiddle.net/t16bzg3m/5/)
+[See a JSFiddle](http://jsfiddle.net/t16bzg3m/6/)
 
 ### Creating a Model
 

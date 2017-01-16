@@ -299,15 +299,21 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function forEachAttribute(el, callback) {
 
-        for (var i = 0; i < el.attributes.length; i++) {
+        var attributes = [].concat(_toConsumableArray(el.attributes)).filter(function (attribute) {
 
-            var attribute = el.attributes[i];
+            return attribute.specified && attribute.name !== 'as';
+        }).map(function (attribute) {
 
-            if (attribute.specified && attribute.name !== 'as') {
+            return {
+                name: attribute.name,
+                value: attribute.value
+            };
+        });
 
-                callback(attribute);
-            }
-        }
+        attributes.forEach(function (attribute) {
+
+            callback(attribute);
+        });
 
         if (el.value) {
 
@@ -328,6 +334,8 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
              * Assume function values are event handlers
              */
             if (typeof value === 'function') {
+
+                el.removeAttribute(attribute.name);
 
                 el[attribute.name] = value;
             } else {
@@ -355,6 +363,9 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
                         bindAttribute(el, attr, vm);
                     });
                 });
+
+                el.removeAttribute('loop');
+                el.removeAttribute('as');
             } else {
 
                 bindAttribute(el, attribute, vm);
