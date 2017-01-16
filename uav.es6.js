@@ -1,21 +1,5 @@
 (() => {
 
-    const ESCAPE_MAP = {
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        '\'': '&apos;'
-    };
-
-    /**
-     * Returns an HTML-escaped string
-     */
-    function escape(value) {
-
-        return value.replace(/[<>'"]/g, c => ESCAPE_MAP[c]);
-
-    }
-
     /**
      * Turns an HTML string into an element
      */
@@ -36,11 +20,11 @@
     }
 
     /**
-     * Tests whether a value has properties that should be bound recursively
+     * Tests whether a value has properties that should be bound
      */
     function isVmEligible(value) {
 
-        return value && !Array.isArray(value) && typeof value === 'object';
+        return value && typeof value === 'object';
 
     }
 
@@ -90,6 +74,10 @@
 
             function get() {
 
+                /**
+                 * If a property is accessed during expression
+                 * evaluation, that means it should be bound.
+                 */
                 if (vm._currentlyCreatingBinding) {
 
                     vm._bindings[key] = vm._bindings[key] || [];
@@ -149,8 +137,8 @@
      * Runs the given expression using an
      * object as the scope. Unlike eval(),
      * this does NOT evaluate the expression
-     * with the priviledges or scope of the
-     * parent execution context.
+     * with the privileges or scope of the
+     * surrounding execution context.
      */
     function evaluate(expression, scope) {
 
@@ -172,7 +160,7 @@
      */
     function bind(template, vm, replace) {
 
-        const matches = template.match(/{(.*?)}/g);
+        const matches = template.match(/{.*?}/g);
 
         if (matches) {
 
@@ -180,9 +168,8 @@
 
             function binding() {
 
-                let content = template;
-
-                let value;
+                let value,
+                    content = template;
 
                 matches.forEach(match => {
 
@@ -198,19 +185,21 @@
 
                     delete vm._currentlyCreatingBinding;
 
-                    if (typeof value === 'boolean') {
+                    const type = typeof value;
+
+                    if (type === 'boolean') {
 
                         content = content.replace(match, value ? prop : '');
                     
-                    } else if (typeof value === 'function') {
+                    } else if (type === 'function') {
 
                         content = value;
 
-                    } else if (value === null || value === undefined || value === '_invalidExpression') {
+                    } else if (value === undefined || value === '_invalidExpression' || value === null) {
 
                         content = content.replace(match, '');
 
-                    } else if (typeof value === 'object' && value._element) {
+                    } else if (type === 'object' && value._element) {
 
                         content = value._element;
 
@@ -222,7 +211,7 @@
                             
                         }
 
-                        content = content.replace(match, escape(value.toString()));
+                        content = content.replace(match, value.toString());
 
                     }
 
@@ -241,7 +230,8 @@
     }
 
     /*
-     * Copy child nodes from one element to another
+     * Copy child nodes from one element to another,
+     * leaving the original nodes in place
      */
     function copyChildNodes(from, to) {
 
@@ -308,6 +298,8 @@
 
                         copyChildNodes(child, el);
 
+                        render(el, vm);
+
                         vm[temp[0]] = keyOriginalValue;
                         vm[temp[1]] = valOriginalValue;
 
@@ -334,7 +326,22 @@
 
         for (let i = 0; i < el.attributes.length; i++) {
 
-            callback(el.attributes[i]);
+            const attribute = el.attributes[i];
+
+            if (attribute.specified && attribute.name !== 'as') {
+
+                callback(attribute);
+
+            }
+
+        }
+
+        if (el.value) {
+
+            callback({
+                name: 'value',
+                value: el.value
+            });
 
         }
 
@@ -346,10 +353,10 @@
     function bindAttribute(el, attribute, vm) {
 
         bind(attribute.value, vm, value => {
-
+            /*
+             * Assume function values are event handlers
+             */
             if (typeof value === 'function') {
-
-                el.removeAttribute(attribute.name);
 
                 el[attribute.name] = value;
 
@@ -370,39 +377,34 @@
 
         forEachAttribute(el, attribute => {
 
-            if (attribute.specified && attribute.name !== 'as') {
+            if (attribute.name === 'loop' && el.attributes.as) {
 
-                if (attribute.name === 'loop' && el.attributes.as) {
+                loop(el.tagName,
+                    attribute.value,
+                    el.attributes.as.value, 
+                    el.innerHTML, 
+                    vm,
+                    child => {
+                        el.innerHTML = '';
+                        [...child.childNodes].forEach(node => el.appendChild(node));
+                        forEachAttribute(el, attr => {
+                            bindAttribute(el, attr, vm);
+                        });
+                    }
+                );
 
-                    loop(el.tagName,
-                        attribute.value,
-                        el.attributes.as.value, 
-                        el.innerHTML, 
-                        vm,
-                        child => {
-                            el.innerHTML = '';
-                            [...child.childNodes].forEach(node => el.appendChild(node));
-                            forEachAttribute(el, attr => {
-                                bindAttribute(el, attr, vm);
-                            });
-                        }
-                    );
+            } else {
 
-                    el.removeAttribute('loop');
-                    el.removeAttribute('as');
-
-                } else {
-
-                    bindAttribute(el, attribute, vm);
-
-                }
+                bindAttribute(el, attribute, vm);
 
             }
 
         });
 
         el.childNodes.forEach(child => {
-
+            /*
+             * Text nodes
+             */
             if (child.nodeType === 3) {
 
                 bind(child.textContent, vm, value => {
@@ -410,16 +412,20 @@
                     child.textContent = value;
 
                 });
-
+            /*
+             * Element nodes
+             */
             } else {
 
                 const tag = child.tagName.toLowerCase();
-
+                /*
+                 * Child components
+                 */
                 if (vm[tag] !== undefined && vm[tag]._element) {
 
                     bind(`{${tag}}`, vm, newChild => {
 
-                        if (child.parentNode === el) {
+                        if (child.parentNode === el) { // Firefox bug
 
                             el.replaceChild(newChild, child);
 
@@ -447,13 +453,25 @@
      * Creates a bound component, optionally
      * inserting it into a parent node
      */
-    function component(vm, template, parentSelector) {
+    function component(vm, template, selector) {
 
-        vm._element = render(parse(template), vm);
+        if (typeof vm === 'string') {
 
-        if (parentSelector) {
+            vm = {
+                _element: parse(vm)
+            };
 
-            const app = document.querySelector(parentSelector);
+            selector = template;
+
+        } else {
+
+            vm._element = render(parse(template), vm);
+
+        }
+
+        if (selector) {
+
+            const app = document.querySelector(selector);
 
             app.innerHTML = '';
 

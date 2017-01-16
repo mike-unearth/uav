@@ -6,23 +6,6 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
 (function () {
 
-    var ESCAPE_MAP = {
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        '\'': '&apos;'
-    };
-
-    /**
-     * Returns an HTML-escaped string
-     */
-    function escape(value) {
-
-        return value.replace(/[<>'"]/g, function (c) {
-            return ESCAPE_MAP[c];
-        });
-    }
-
     /**
      * Turns an HTML string into an element
      */
@@ -42,11 +25,11 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
     }
 
     /**
-     * Tests whether a value has properties that should be bound recursively
+     * Tests whether a value has properties that should be bound
      */
     function isVmEligible(value) {
 
-        return value && !Array.isArray(value) && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object';
+        return value && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object';
     }
 
     /**
@@ -93,6 +76,10 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
             function get() {
 
+                /**
+                 * If a property is accessed during expression
+                 * evaluation, that means it should be bound.
+                 */
                 if (vm._currentlyCreatingBinding) {
 
                     vm._bindings[key] = vm._bindings[key] || [];
@@ -144,8 +131,8 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      * Runs the given expression using an
      * object as the scope. Unlike eval(),
      * this does NOT evaluate the expression
-     * with the priviledges or scope of the
-     * parent execution context.
+     * with the privileges or scope of the
+     * surrounding execution context.
      */
     function evaluate(expression, scope) {
 
@@ -164,15 +151,14 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function bind(template, vm, replace) {
 
-        var matches = template.match(/{(.*?)}/g);
+        var matches = template.match(/{.*?}/g);
 
         if (matches) {
             (function () {
                 var binding = function binding() {
 
-                    var content = template;
-
-                    var value = void 0;
+                    var value = void 0,
+                        content = template;
 
                     matches.forEach(function (match) {
 
@@ -187,16 +173,18 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
                         delete vm._currentlyCreatingBinding;
 
-                        if (typeof value === 'boolean') {
+                        var type = typeof value === 'undefined' ? 'undefined' : _typeof(value);
+
+                        if (type === 'boolean') {
 
                             content = content.replace(match, value ? prop : '');
-                        } else if (typeof value === 'function') {
+                        } else if (type === 'function') {
 
                             content = value;
-                        } else if (value === null || value === undefined || value === '_invalidExpression') {
+                        } else if (value === undefined || value === '_invalidExpression' || value === null) {
 
                             content = content.replace(match, '');
-                        } else if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object' && value._element) {
+                        } else if (type === 'object' && value._element) {
 
                             content = value._element;
                         } else {
@@ -206,7 +194,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
                                 value = value.join('');
                             }
 
-                            content = content.replace(match, escape(value.toString()));
+                            content = content.replace(match, value.toString());
                         }
                     });
 
@@ -223,7 +211,8 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
     }
 
     /*
-     * Copy child nodes from one element to another
+     * Copy child nodes from one element to another,
+     * leaving the original nodes in place
      */
     function copyChildNodes(from, to) {
 
@@ -288,6 +277,8 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
                             copyChildNodes(child, el);
 
+                            render(el, vm);
+
                             vm[temp[0]] = keyOriginalValue;
                             vm[temp[1]] = valOriginalValue;
                         });
@@ -310,7 +301,20 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
         for (var i = 0; i < el.attributes.length; i++) {
 
-            callback(el.attributes[i]);
+            var attribute = el.attributes[i];
+
+            if (attribute.specified && attribute.name !== 'as') {
+
+                callback(attribute);
+            }
+        }
+
+        if (el.value) {
+
+            callback({
+                name: 'value',
+                value: el.value
+            });
         }
     }
 
@@ -320,10 +324,10 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
     function bindAttribute(el, attribute, vm) {
 
         bind(attribute.value, vm, function (value) {
-
+            /*
+             * Assume function values are event handlers
+             */
             if (typeof value === 'function') {
-
-                el.removeAttribute(attribute.name);
 
                 el[attribute.name] = value;
             } else {
@@ -340,46 +344,48 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
         forEachAttribute(el, function (attribute) {
 
-            if (attribute.specified && attribute.name !== 'as') {
+            if (attribute.name === 'loop' && el.attributes.as) {
 
-                if (attribute.name === 'loop' && el.attributes.as) {
-
-                    loop(el.tagName, attribute.value, el.attributes.as.value, el.innerHTML, vm, function (child) {
-                        el.innerHTML = '';
-                        [].concat(_toConsumableArray(child.childNodes)).forEach(function (node) {
-                            return el.appendChild(node);
-                        });
-                        forEachAttribute(el, function (attr) {
-                            bindAttribute(el, attr, vm);
-                        });
+                loop(el.tagName, attribute.value, el.attributes.as.value, el.innerHTML, vm, function (child) {
+                    el.innerHTML = '';
+                    [].concat(_toConsumableArray(child.childNodes)).forEach(function (node) {
+                        return el.appendChild(node);
                     });
+                    forEachAttribute(el, function (attr) {
+                        bindAttribute(el, attr, vm);
+                    });
+                });
+            } else {
 
-                    el.removeAttribute('loop');
-                    el.removeAttribute('as');
-                } else {
-
-                    bindAttribute(el, attribute, vm);
-                }
+                bindAttribute(el, attribute, vm);
             }
         });
 
         el.childNodes.forEach(function (child) {
-
+            /*
+             * Text nodes
+             */
             if (child.nodeType === 3) {
 
                 bind(child.textContent, vm, function (value) {
 
                     child.textContent = value;
                 });
+                /*
+                 * Element nodes
+                 */
             } else {
 
                 var tag = child.tagName.toLowerCase();
-
+                /*
+                 * Child components
+                 */
                 if (vm[tag] !== undefined && vm[tag]._element) {
 
                     bind('{' + tag + '}', vm, function (newChild) {
 
                         if (child.parentNode === el) {
+                            // Firefox bug
 
                             el.replaceChild(newChild, child);
 
@@ -400,13 +406,23 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      * Creates a bound component, optionally
      * inserting it into a parent node
      */
-    function component(vm, template, parentSelector) {
+    function component(vm, template, selector) {
 
-        vm._element = render(parse(template), vm);
+        if (typeof vm === 'string') {
 
-        if (parentSelector) {
+            vm = {
+                _element: parse(vm)
+            };
 
-            var app = document.querySelector(parentSelector);
+            selector = template;
+        } else {
+
+            vm._element = render(parse(template), vm);
+        }
+
+        if (selector) {
+
+            var app = document.querySelector(selector);
 
             app.innerHTML = '';
 

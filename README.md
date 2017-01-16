@@ -1,6 +1,6 @@
 # UAV
 
-A simple utility for one-way data binding.
+UAV is a JavaScript utility for templates with one-way data binding. It is 1.6KB after compression.
 
 ## Install
 
@@ -8,69 +8,100 @@ A simple utility for one-way data binding.
 
 ## Example
 
+[See a JSFiddle](http://jsfiddle.net/t16bzg3m/5/)
+
+### Creating a Model
+
+`uav.model(model)`
+
+Arguments:
+- `model`: a raw object, with any properties, to be used as the view model.
+
+Returns: An object with the same properties as `model`. When a property on this object is changed, any template expressions which reference it will be reevaluated and rendered.
+
 ```javascript
 const model = uav.model({
-    visible: true,
-    text: 'hello',
-    click: message => e => console.log(message, e),
-    items: [1, 2, 3]
+    text: 'hello, world!'
 });
+```
 
+### Creating a Component
+
+`uav.component(model, template, selector)`
+
+Arguments:
+- `model`: The return value of `uav.model`. Optional.
+- `template`: A template string.
+- `selector`: An optional CSS selector. If included, the component will be rendered into the first matched element.
+
+Returns: The model.
+
+```javascript
 const component = uav.component(model, `
-    <div>
-        <h1 class="{visible}">{text}</h1>
-        <a onclick={click('clicked!')}>Click me</a>
-        <ul loop="items" as="item">
-            <li>{item}</li>
-        </ul>
-    </div>
-`}, '#app');
+    <h1>{text}</h1>
+`);
 ```
 
-This renders the following into the `#app` element:
+### Template Expressions
 
-```html
-<div>
-    <h1 class="visible">hello</h1>
-    <a>Click me</a>
-    <ul>
-        <li>1</li>
-        <li>2</li>
-        <li>3</li>
-    </ul>
-</div>
+Expressions are best explained by example:
+
+Basic expression:
+```javascript
+`<div>This is a content expression: {content}</div>`
+```
+Attribute expression:
+```javascript
+`<div class="wrapper {visible}"></div>`
 ```
 
-Even though template expressions have been removed, bound events work as expected.
+If an attribute expression evaluates to a boolean, it will render nothing if false, or the property name if true. This makes toggling the "visible" class on the above `<div>` as easy as `model.visble = !model.visible`.
 
-If we run `component.text = 'updated'`, the content of the `<h1>` will update.
+Event expression:
+```javascript
+`<div onclick="{click}"></div>`
+```
 
-If we run `component.visible = false`, the `<h1>` will lose the `visible` class.
+Any template expression which evaluates to a function is assumed to be an event handler, and will be passed the event object.
 
-If we run `component.visible = 'hidden'`, the class of the `<h1>` will change to `hidden`;
+Array loop expression:
+```javascript
+`<li loop="items" as="item">{item}</li>`
+```
 
-If we run `component.click = () => alert('foo')`, clicking the `<a>` will trigger the alert.
+Add the `loop` and `as` attributes to an element to repeat its content for each item in an array.
 
-If we run `component.items = component.items.concat([4])`, an additional `<li>` will be rendered.
-
-If we run `component.items.push(4)`, nothing will happen, because we did not trigger the model's setter. ES6 proxies could fix this, but don't have sufficient browser support at the time of this writing.
+Object loop expression:
+```javascript
+`<li loop="object" as="key.value">{key} = {value}</li>`
+```
 
 ## Child Components
 
-Given the above component, we could include it in another component thusly:
+Components can be rendered into other components by adding them to the model and referencing them as HTML tags.
 
 ```javascript
-const parentModel = uav.model({
-    child: component,
-    cssClass: 'parent'
+const child = uav.component('<div>I am a child.</div>');
+
+const model = uav.model({
+    child
 });
 
-uav.component(parentModel, `
-    <div class="{cssClass}">
+uav.component(model, `
+    <div>
         This is a component with a child.
         <child></child>
     </div>
 `, '#app');
+```
+
+This will render the following into the `#app` component:
+
+```html
+<div>
+    This is a component with a child.
+    <div>I am a child.</div>
+</div>
 ```
 
 ## Passing Data to Children
@@ -80,14 +111,14 @@ function child(data) {
 
     const childModel = uav.model({ data });
 
-    return uav.component(childModel, `<h1>{data}</h1>`);
+    return uav.component(childModel, `<div>{data}</div>`);
 }
 
-const parentModel = uav.model({
-    child: child('foo')
+const model = uav.model({
+    child: child('This is passed from parent to child.')
 });
 
-uav.component(parentModel, `
+uav.component(model, `
     <div>
         This component passes data to its child.
         <child></child>
@@ -95,29 +126,18 @@ uav.component(parentModel, `
 `);
 ```
 
-## Looping over Objects
+This will render the following into the `#app` component:
 
-Template loops over arrays are demonstrated above. Looping over an object is also supported:
-
-```javascript
-const model = uav.model({
-    obj: {
-        a: 1,
-        b: 2,
-        c: 3
-    }
-});
-
-uav.component(model, `
-    <ul loop="obj" as="key.value">
-        <li>{key} = {value}</li>
-    </ul>
-`}, '#app');
+```html
+<div>
+    This component passes data to its child.
+    <div>This is passed from parent to child.</div>
+</div>
 ```
 
 ## DOM Access
 
-Using bound templates generally supplants the need to perform any manual DOM manipulation. However, there are occasions where it is unavoidable. Elements can be accessed by passing a selector (and optionally, a callback) to the `uav` function.
+Data-bound templates generally supplant the need to perform any manual DOM manipulation. However, there are occasions where it is unavoidable. Elements can be accessed by passing a selector (and optionally, a callback) to the `uav` function.
 
 Access the first matched element:
 
