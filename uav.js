@@ -241,7 +241,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
             var el = document.createElement(tag);
 
-            if (data !== '_invalidExpression') {
+            if (data && data !== '_invalidExpression') {
                 (function () {
 
                     var child = parse('<div>' + template + '</div>');
@@ -396,7 +396,6 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
                     bind('{' + tag + '}', vm, function (newChild) {
 
                         if (child.parentNode === el) {
-                            // Firefox bug
 
                             el.replaceChild(newChild, child);
 

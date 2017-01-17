@@ -260,7 +260,7 @@
 
             const el = document.createElement(tag);
 
-            if (data !== '_invalidExpression') {
+            if (data && data !== '_invalidExpression') {
 
                 const child = parse(`<div>${template}</div>`);
 
@@ -437,7 +437,7 @@
 
                     bind(`{${tag}}`, vm, newChild => {
 
-                        if (child.parentNode === el) { // Firefox bug
+                        if (child.parentNode === el) {
 
                             el.replaceChild(newChild, child);
 
