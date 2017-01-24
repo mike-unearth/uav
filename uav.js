@@ -6,6 +6,17 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
 (function () {
 
+    /*
+     * Array.prototype.from shim for IE
+     */
+    if (!Array.from) {
+
+        Array.from = function (object) {
+
+            return [].slice.call(object);
+        };
+    }
+
     /**
      * Turns an HTML string into an element
      */
@@ -216,7 +227,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function copyChildNodes(from, to) {
 
-        from.childNodes.forEach(function (node) {
+        [].concat(_toConsumableArray(from.childNodes)).forEach(function (node) {
             return to.appendChild(node.cloneNode(true));
         });
     }
@@ -372,7 +383,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
             }
         });
 
-        el.childNodes.forEach(function (child) {
+        [].concat(_toConsumableArray(el.childNodes)).forEach(function (child) {
             /*
              * Text nodes
              */

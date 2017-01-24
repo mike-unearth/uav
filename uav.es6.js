@@ -1,5 +1,16 @@
 (() => {
 
+    /*
+     * Array.prototype.from shim for IE
+     */
+    if (!Array.from) {
+
+        Array.from = function (object) {
+
+            return [].slice.call(object);
+        };
+    }
+
     /**
      * Turns an HTML string into an element
      */
@@ -235,7 +246,7 @@
      */
     function copyChildNodes(from, to) {
 
-        from.childNodes.forEach(node => to.appendChild(node.cloneNode(true)));
+        [...from.childNodes].forEach(node => to.appendChild(node.cloneNode(true)));
 
     }
 
@@ -413,7 +424,7 @@
 
         });
 
-        el.childNodes.forEach(child => {
+        [...el.childNodes].forEach(child => {
             /*
              * Text nodes
              */
