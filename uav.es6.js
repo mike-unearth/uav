@@ -246,7 +246,7 @@
      */
     function copyChildNodes(from, to) {
 
-        [...from.childNodes].forEach(node => to.appendChild(node.cloneNode(true)));
+        Array.from(from.childNodes).forEach(node => to.appendChild(node.cloneNode(true)));
 
     }
 
@@ -335,7 +335,7 @@
      */
     function forEachAttribute(el, callback) {
 
-        const attributes = [...el.attributes].filter(attribute => {
+        const attributes = Array.from(el.attributes).filter(attribute => {
 
             return attribute.specified && attribute.name !== 'as';
 
@@ -370,23 +370,45 @@
      */
     function bindAttribute(el, attribute, vm) {
 
-        bind(attribute.value, vm, value => {
-            /*
-             * Assume function values are event handlers
-             */
-            if (typeof value === 'function') {
+        if (attribute.name === 'data-style') {
 
-                el.removeAttribute(attribute.name);
+            bind(attribute.value, vm, styles => {
+                /*
+                 * IE doesn't support setAttribute for styles
+                 */
+                styles = styles.split(';');
 
-                el[attribute.name] = value;
+                for (let i = 0; i < styles.length; i ++) {
 
-            } else {
+                    const style = styles[i].split(':');
 
-                el.setAttribute(attribute.name, value);
+                    el.style[style[0]] = style[1];
 
-            }
+                }
 
-        });
+            });
+
+        } else {
+
+            bind(attribute.value, vm, value => {
+                /*
+                 * Assume function values are event handlers
+                 */
+                if (typeof value === 'function') {
+
+                    el.removeAttribute(attribute.name);
+
+                    el[attribute.name] = value;
+
+                } else {
+
+                    el.setAttribute(attribute.name, value);
+
+                }
+
+            });
+
+        }
 
     }
 
@@ -406,7 +428,7 @@
                     vm,
                     child => {
                         el.innerHTML = '';
-                        [...child.childNodes].forEach(node => el.appendChild(node));
+                        Array.from(child.childNodes).forEach(node => el.appendChild(node));
                         forEachAttribute(el, attr => {
                             bindAttribute(el, attr, vm);
                         });
@@ -424,7 +446,7 @@
 
         });
 
-        [...el.childNodes].forEach(child => {
+        Array.from(el.childNodes).forEach(child => {
             /*
              * Text nodes
              */
@@ -514,7 +536,7 @@
 
         if (callback) {
 
-            [...document.querySelectorAll(selector)].forEach(callback);
+            Array.from(document.querySelectorAll(selector)).forEach(callback);
 
         } else {
 

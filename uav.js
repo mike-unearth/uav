@@ -2,8 +2,6 @@
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-
 (function () {
 
     /*
@@ -227,7 +225,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function copyChildNodes(from, to) {
 
-        [].concat(_toConsumableArray(from.childNodes)).forEach(function (node) {
+        Array.from(from.childNodes).forEach(function (node) {
             return to.appendChild(node.cloneNode(true));
         });
     }
@@ -310,7 +308,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function forEachAttribute(el, callback) {
 
-        var attributes = [].concat(_toConsumableArray(el.attributes)).filter(function (attribute) {
+        var attributes = Array.from(el.attributes).filter(function (attribute) {
 
             return attribute.specified && attribute.name !== 'as';
         }).map(function (attribute) {
@@ -340,20 +338,38 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
      */
     function bindAttribute(el, attribute, vm) {
 
-        bind(attribute.value, vm, function (value) {
-            /*
-             * Assume function values are event handlers
-             */
-            if (typeof value === 'function') {
+        if (attribute.name === 'data-style') {
 
-                el.removeAttribute(attribute.name);
+            bind(attribute.value, vm, function (styles) {
+                /*
+                 * IE doesn't support setAttribute for styles
+                 */
+                styles = styles.split(';');
 
-                el[attribute.name] = value;
-            } else {
+                for (var i = 0; i < styles.length; i++) {
 
-                el.setAttribute(attribute.name, value);
-            }
-        });
+                    var style = styles[i].split(':');
+
+                    el.style[style[0]] = style[1];
+                }
+            });
+        } else {
+
+            bind(attribute.value, vm, function (value) {
+                /*
+                 * Assume function values are event handlers
+                 */
+                if (typeof value === 'function') {
+
+                    el.removeAttribute(attribute.name);
+
+                    el[attribute.name] = value;
+                } else {
+
+                    el.setAttribute(attribute.name, value);
+                }
+            });
+        }
     }
 
     /**
@@ -367,7 +383,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
                 loop(el.tagName, attribute.value, el.attributes.as.value, el.innerHTML, vm, function (child) {
                     el.innerHTML = '';
-                    [].concat(_toConsumableArray(child.childNodes)).forEach(function (node) {
+                    Array.from(child.childNodes).forEach(function (node) {
                         return el.appendChild(node);
                     });
                     forEachAttribute(el, function (attr) {
@@ -383,7 +399,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
             }
         });
 
-        [].concat(_toConsumableArray(el.childNodes)).forEach(function (child) {
+        Array.from(el.childNodes).forEach(function (child) {
             /*
              * Text nodes
              */
@@ -461,7 +477,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
         if (callback) {
 
-            [].concat(_toConsumableArray(document.querySelectorAll(selector))).forEach(callback);
+            Array.from(document.querySelectorAll(selector)).forEach(callback);
         } else {
 
             return document.querySelector(selector) || document.createElement('div');
